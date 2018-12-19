@@ -1,3 +1,12 @@
+//This firmware works on three different hardware layouts
+//Serial7Segment was the original and drives the segments directly from the ATmega
+//OpenSegment uses PNP and NPN transistors to drive larger displays
+//Serial7SegmentShield also drives the segments directly from the ATmega
+#define S7S            1
+#define OPENSEGMENT    2
+#define S7SHIELD       3
+#define DISPLAY_TYPE OPENSEGMENT
+
 //Pin definitions
 #define SPI_CS			10
 #define SPI_MOSI		11
