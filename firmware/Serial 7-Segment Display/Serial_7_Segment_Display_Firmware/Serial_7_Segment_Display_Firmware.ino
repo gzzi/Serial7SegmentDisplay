@@ -237,7 +237,7 @@ void PrintInt(int value, unsigned scale=1, unsigned start=0, unsigned nb_digit=4
     value %= ten_pow;
 
     nb_digit--;
-    if((ten_pow == scale) && (nb_digit))
+    if((ten_pow == scale) && (nb_digit) && (ten_pow > 1))
       display.decimals |= (1 << cursor);
 
     ten_pow /=10;
@@ -255,14 +255,22 @@ void PrintInt(int value, unsigned scale=1, unsigned start=0, unsigned nb_digit=4
 
 void Temperature_SubMode()
 {
-  int temp = -3;  // in 1/10 of degree celcius
+  static unsigned long last_update = 0;
 
-  display.decimals = (1 << APOSTROPHE);
-  display.digits[3] = 'C';
+  int temp = GetTemperatureInDeciCelcius();
 
-  PrintInt(temp, 10, 0, 3);
+  if((millis()-last_update) > 600)
+  {
+    last_update = millis();
+    
+    display.decimals = (1 << APOSTROPHE);
+    display.digits[3] = 'C';
+
+    PrintInt(temp, 10, 0, 3);
+  }
 
   myDisplay.DisplayString(display.digits, display.decimals); //(numberToDisplay, decimal point location)
+
 }
 
 //Do nothing but analog reads
@@ -280,14 +288,14 @@ void displayAnalog()
     {
       last_btn_val = btn_val;
 
-      if ((!btn_val) && ((last_press_ms - millis()) > 250)) // rising edge debouncing
+      if ((!btn_val) && ((millis() -last_press_ms ) > 250)) // rising edge debouncing
       {
         // enter next submode
         last_press_ms = millis();
         sub_mode = (sub_mode + 1) % MAX_SUB_MODE;
       }
     }
-
+  
     switch (sub_mode)
     {
       case 0:
@@ -297,7 +305,7 @@ void displayAnalog()
       case 1:
         Analog_SubMode();
         break;
-    }
+   }
 
     serialEvent(); //Check the serial buffer for new data
   }

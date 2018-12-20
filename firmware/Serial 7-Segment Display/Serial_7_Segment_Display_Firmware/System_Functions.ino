@@ -275,10 +275,10 @@ void setupMode()
 {
   deviceMode = EEPROM.read(MODE_ADDRESS); // Read the mode the device should be in
   
-  //if (deviceMode > MODE_COUNTER)
+  if (deviceMode > MODE_COUNTER)
   { // If the mode is invalid, goto default mode
     deviceMode = MODE_DEFAULT;
-    //EEPROM.write(MODE_ADDRESS, MODE_DEFAULT);
+    EEPROM.write(MODE_ADDRESS, MODE_DEFAULT);
   }
   
 #if DISPLAY_TYPE == OPENSEGMENT
@@ -339,6 +339,8 @@ void setupIO()
   pinMode(PB3, OUTPUT);
   digitalWrite(PB3, LOW);        // sets the digital pin 13 off
   pinMode(IO_BUTTON, INPUT_PULLUP);
+
+  analogReference(3);  // Internal 1V1
 }
 
 // setupTWI(): initializes I2C (err TWI! TWI! TWI!, can't bang that into my head enough)
@@ -423,4 +425,58 @@ void setDefaultSettings(void)
   //Reset the mode to the default data interface
   EEPROM.write(MODE_ADDRESS, MODE_DEFAULT);
   deviceMode = MODE_DEFAULT;
+}
+
+// it seem arduino does not support analog channel internal temperature
+#ifndef sbi
+#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
+#endif
+int analogReadTemperature()
+{
+  extern uint8_t analog_reference;
+  uint8_t low, high;
+  
+  ADMUX = (3 << 6) | 8;  // select temperature sensor
+
+  // start the conversion
+  sbi(ADCSRA, ADSC);
+
+  // ADSC is cleared when the conversion finishes
+  while (bit_is_set(ADCSRA, ADSC));
+
+  // we have to read ADCL first; doing so locks both ADCL
+  // and ADCH until ADCH is read.  reading ADCL second would
+  // cause the results of each conversion to be discarded,
+  // as ADCL and ADCH would be locked when it completed.
+  low  = ADCL;
+  high = ADCH;
+
+  // combine the two bytes
+  return (high << 8) | low;
+}
+
+int GetTemperatureInDeciCelcius(void)
+{
+  unsigned int wADC;
+  int t;
+
+  wADC = analogReadTemperature();
+  Serial.print("\nwADC: ");
+  Serial.print(wADC);
+
+  // The offset of 324.31 could be wrong. It is just an indication.
+  Serial.print("\nt: ");
+  Serial.print(t);
+
+  // RII output[k] = (15*output[k-1] + input)/16  (no risk of overflow as adc is 10 bit)
+  static int acc=0, remain=0;
+  wADC += remain;
+  acc = (acc<<4) - acc + wADC;  
+  remain = acc & ((1<<4)-1);
+  acc >>= 4;
+
+  t = (acc - 324.31 ) / 0.122;
+
+  // The returned temperature is in degrees Celcius.
+  return (t);
 }
