@@ -183,44 +183,86 @@ void displayCounter()
     myDisplay.DisplayString(display.digits, 0); //(numberToDisplay, no decimals during counter mode)
 
     serialEvent(); //Check the serial buffer for new data
-  }  
+  }
 }
 
 void Analog_SubMode()
 {
-    analogValue6 = analogRead(A6);
-    analogValue7 = analogRead(A7);
+  analogValue6 = analogRead(A6);
+  analogValue7 = analogRead(A7);
 
-    Serial.print("\nA6: ");
-    Serial.print(analogValue6);
-    Serial.print(" A7: ");
-    Serial.print(analogValue7);
+  Serial.print("\nA6: ");
+  Serial.print(analogValue6);
+  Serial.print(" A7: ");
+  Serial.print(analogValue7);
 
-    //Do calculation for 1st voltage meter
-    float fvoltage6 = ((analogValue6 * 50) / (float)1024);
-    int voltage6 = round(fvoltage6);
-    display.digits[0] = voltage6 / 10;
-    display.digits[1] = voltage6 % 10;
+  //Do calculation for 1st voltage meter
+  float fvoltage6 = ((analogValue6 * 50) / (float)1024);
+  int voltage6 = round(fvoltage6);
+  display.digits[0] = voltage6 / 10;
+  display.digits[1] = voltage6 % 10;
 
-    //Do calculation for 2nd voltage meter
-    float fvoltage7 = ((analogValue7 * 50) / (float)1024);
-    int voltage7 = round(fvoltage7);
-    display.digits[2] = voltage7 / 10;
-    display.digits[3] = voltage7 % 10;
+  //Do calculation for 2nd voltage meter
+  float fvoltage7 = ((analogValue7 * 50) / (float)1024);
+  int voltage7 = round(fvoltage7);
+  display.digits[2] = voltage7 / 10;
+  display.digits[3] = voltage7 % 10;
 
-    display.decimals = ((1<<DECIMAL1) | (1<<DECIMAL3)); //Turn on the decimals next to digit1 and digit3
-    myDisplay.DisplayString(display.digits, display.decimals); //(numberToDisplay, decimal point location)
+  display.decimals = ((1 << DECIMAL1) | (1 << DECIMAL3)); //Turn on the decimals next to digit1 and digit3
+  myDisplay.DisplayString(display.digits, display.decimals); //(numberToDisplay, decimal point location)
+}
+
+// print a integer on a 7 segment. scale must be a power of 10 (1, 10, 100, ...)
+void PrintInt(int value, unsigned scale=1, unsigned start=0, unsigned nb_digit=4)
+{
+  unsigned cursor = start;
+
+  if (value < 0)
+  {
+    display.digits[cursor] = '-';
+    cursor += 1;
+    nb_digit--;
+    value = -value;
+  }
+
+  unsigned ten_pow = 1000;
+  while(ten_pow > value)
+    ten_pow /=10;
+  if(ten_pow < scale)
+    ten_pow = scale;
+
+  while(nb_digit && (ten_pow > 0))
+  {
+    display.digits[cursor] = value / ten_pow;
+    value %= ten_pow;
+
+    nb_digit--;
+    if((ten_pow == scale) && (nb_digit))
+      display.decimals |= (1 << cursor);
+
+    ten_pow /=10;
+    cursor += 1;
+  }
+
+  while(nb_digit)
+  {
+    display.digits[cursor] = ' ';
+
+    cursor += 1;
+    nb_digit--;
+  }
 }
 
 void Temperature_SubMode()
 {
-    display.digits[0] = ' ';
-    display.digits[1] = ' ';
-    display.digits[2] = ' ';
-    display.digits[3] = 'C';
+  int temp = -3;  // in 1/10 of degree celcius
 
-    display.decimals = (1<<APOSTROPHE); //Turn on the decimals next to digit1 and digit3
-    myDisplay.DisplayString(display.digits, display.decimals); //(numberToDisplay, decimal point location)
+  display.decimals = (1 << APOSTROPHE);
+  display.digits[3] = 'C';
+
+  PrintInt(temp, 10, 0, 3);
+
+  myDisplay.DisplayString(display.digits, display.decimals); //(numberToDisplay, decimal point location)
 }
 
 //Do nothing but analog reads
@@ -231,14 +273,14 @@ void displayAnalog()
   const unsigned MAX_SUB_MODE = 2;
   unsigned long last_press_ms = millis();
 
-  while(deviceMode == MODE_ANALOG)
+  while (deviceMode == MODE_ANALOG)
   {
     int btn_val = digitalRead(IO_BUTTON);
-    if(btn_val != last_btn_val)  // edge
+    if (btn_val != last_btn_val) // edge
     {
       last_btn_val = btn_val;
 
-      if((!btn_val) && ((last_press_ms - millis()) > 250))  // rising edge debouncing
+      if ((!btn_val) && ((last_press_ms - millis()) > 250)) // rising edge debouncing
       {
         // enter next submode
         last_press_ms = millis();
@@ -246,19 +288,19 @@ void displayAnalog()
       }
     }
 
-    switch(sub_mode)
+    switch (sub_mode)
     {
       case 0:
-      Temperature_SubMode();
-      break;
+        Temperature_SubMode();
+        break;
 
       case 1:
-      Analog_SubMode();
-      break;
+        Analog_SubMode();
+        break;
     }
 
     serialEvent(); //Check the serial buffer for new data
-  }  
+  }
 }
 
 // updateBufferData(): This beast of a function is called by the Timer 1 ISR if there is new data in the buffer. 
