@@ -275,10 +275,10 @@ void setupMode()
 {
   deviceMode = EEPROM.read(MODE_ADDRESS); // Read the mode the device should be in
   
-  if (deviceMode > MODE_COUNTER)
+  //if (deviceMode > MODE_COUNTER)
   { // If the mode is invalid, goto default mode
     deviceMode = MODE_DEFAULT;
-    EEPROM.write(MODE_ADDRESS, MODE_DEFAULT);
+    //EEPROM.write(MODE_ADDRESS, MODE_DEFAULT);
   }
   
 #if DISPLAY_TYPE == OPENSEGMENT
@@ -328,6 +328,17 @@ void setupSPI()
   // CPOL = 0, sck low when idle                  } MODE 0
   // CPHA = 0, data sampled on leading clock edge } MODE 0
   // SPR1:0 = 0, no effect (slave mode)
+}
+
+
+// setupIO(): Initialize IO, sets up hardware pins and default values
+// For now, a switch is connected between CS and MOSI. CS is switch input
+// with pull-up, MOSI is output at 0.
+void setupIO()
+{
+  pinMode(PB3, OUTPUT);
+  digitalWrite(PB3, LOW);        // sets the digital pin 13 off
+  pinMode(IO_BUTTON, INPUT_PULLUP);
 }
 
 // setupTWI(): initializes I2C (err TWI! TWI! TWI!, can't bang that into my head enough)

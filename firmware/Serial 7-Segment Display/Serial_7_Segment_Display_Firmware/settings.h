@@ -5,11 +5,18 @@
 #define S7S            1
 #define OPENSEGMENT    2
 #define S7SHIELD       3
-#define DISPLAY_TYPE OPENSEGMENT
+#define DISPLAY_TYPE S7S
 
 //Pin definitions
-#define SPI_CS			10
-#define SPI_MOSI		11
+#define PB2         10
+#define PB3         11
+
+//IO mapping
+#define IO_BUTTON   PB2
+
+//SPI mapping
+#define SPI_CS			PB2
+#define SPI_MOSI		PB3
 #define SPI_MISO		12
 #define SPI_SCK			13
 
@@ -43,7 +50,7 @@
 const int TWI_ADDRESS_DEFAULT = 0x71;
 const int BAUD_DEFAULT  = BAUD_9600;  // 9600 for 8MHz, 2x speed
 const int BRIGHTNESS_DEFAULT = 100;  // 100%, full brightness
-const int MODE_DEFAULT = MODE_DATA; // Watch for incoming data rather than pulses or analog voltages
+const int MODE_DEFAULT = MODE_ANALOG; // Watch for incoming data rather than pulses or analog voltages
 
 //Internal EEPROM locations for the user settings
 const unsigned char BRIGHTNESS_ADDRESS = 0;

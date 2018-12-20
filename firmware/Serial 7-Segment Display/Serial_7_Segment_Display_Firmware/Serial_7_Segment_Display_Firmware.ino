@@ -63,7 +63,8 @@ void setup()
 
   setupTimer();  // Setup timer to control interval reading from buffer
   setupUART();   // initialize UART stuff (interrupts, enable, baud)
-  setupSPI();    // Initialize SPI stuff (enable, mode, interrupts)
+  //setupSPI();    // Initialize SPI stuff (enable, mode, interrupts)
+  setupIO();     // Initialise IO
   setupTWI();    // Initialize I2C stuff (address, interrupt, enable)
   setupAnalog(); // Initialize the analog inputs
   setupMode();   // Determine which mode we should be in
@@ -185,18 +186,15 @@ void displayCounter()
   }  
 }
 
-//Do nothing but analog reads
-void displayAnalog()
+void Analog_SubMode()
 {
-  while(deviceMode == MODE_ANALOG)
-  {
     analogValue6 = analogRead(A6);
     analogValue7 = analogRead(A7);
 
-    //Serial.print("A6: ");
-    //Serial.print(analogValue6);
-    //Serial.print(" A7: ");
-    //Serial.print(analogValue7);
+    Serial.print("\nA6: ");
+    Serial.print(analogValue6);
+    Serial.print(" A7: ");
+    Serial.print(analogValue7);
 
     //Do calculation for 1st voltage meter
     float fvoltage6 = ((analogValue6 * 50) / (float)1024);
@@ -212,6 +210,52 @@ void displayAnalog()
 
     display.decimals = ((1<<DECIMAL1) | (1<<DECIMAL3)); //Turn on the decimals next to digit1 and digit3
     myDisplay.DisplayString(display.digits, display.decimals); //(numberToDisplay, decimal point location)
+}
+
+void Temperature_SubMode()
+{
+    display.digits[0] = ' ';
+    display.digits[1] = ' ';
+    display.digits[2] = ' ';
+    display.digits[3] = 'C';
+
+    display.decimals = (1<<APOSTROPHE); //Turn on the decimals next to digit1 and digit3
+    myDisplay.DisplayString(display.digits, display.decimals); //(numberToDisplay, decimal point location)
+}
+
+//Do nothing but analog reads
+void displayAnalog()
+{
+  unsigned sub_mode = 0;
+  int last_btn_val = digitalRead(IO_BUTTON);
+  const unsigned MAX_SUB_MODE = 2;
+  unsigned long last_press_ms = millis();
+
+  while(deviceMode == MODE_ANALOG)
+  {
+    int btn_val = digitalRead(IO_BUTTON);
+    if(btn_val != last_btn_val)  // edge
+    {
+      last_btn_val = btn_val;
+
+      if((!btn_val) && ((last_press_ms - millis()) > 250))  // rising edge debouncing
+      {
+        // enter next submode
+        last_press_ms = millis();
+        sub_mode = (sub_mode + 1) % MAX_SUB_MODE;
+      }
+    }
+
+    switch(sub_mode)
+    {
+      case 0:
+      Temperature_SubMode();
+      break;
+
+      case 1:
+      Analog_SubMode();
+      break;
+    }
 
     serialEvent(); //Check the serial buffer for new data
   }  
