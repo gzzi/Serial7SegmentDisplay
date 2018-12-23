@@ -433,7 +433,6 @@ void setDefaultSettings(void)
 #endif
 int analogReadTemperature()
 {
-  extern uint8_t analog_reference;
   uint8_t low, high;
   
   ADMUX = (3 << 6) | 8;  // select temperature sensor
@@ -457,26 +456,23 @@ int analogReadTemperature()
 
 int GetTemperatureInDeciCelcius(void)
 {
-  unsigned int wADC;
-  int t;
+  // RII output[k] = (15*output[k-1] + input)/16
+  static unsigned long adc_mean_q0_14=292*16, remain_q0_14=0;
+  unsigned long  adc_q0_14 = analogReadTemperature()<<4;
+  adc_q0_14 += remain_q0_14;
 
-  wADC = analogReadTemperature();
-  Serial.print("\nwADC: ");
-  Serial.print(wADC);
+  unsigned long acc = (adc_mean_q0_14<<4) - adc_mean_q0_14 + adc_q0_14;
+  remain_q0_14 = acc & ((1<<4)-1);
+  adc_mean_q0_14 = acc >> 4;
 
-  // The offset of 324.31 could be wrong. It is just an indication.
-  Serial.print("\nt: ");
-  Serial.print(t);
+  // The returned temperature is in 10 degrees Celcius.
+  // temp = adc  * slope + offset
+  // keep offset in 1/10 deg representation to help calibration
+  const long slope = 1036;
+  const long offset = -341;
+  long t_q11_14 = adc_mean_q0_14 * slope;
+  long temperature = (t_q11_14 *10) >> 14;
 
-  // RII output[k] = (15*output[k-1] + input)/16  (no risk of overflow as adc is 10 bit)
-  static int acc=0, remain=0;
-  wADC += remain;
-  acc = (acc<<4) - acc + wADC;  
-  remain = acc & ((1<<4)-1);
-  acc >>= 4;
-
-  t = (acc - 324.31 ) / 0.122;
-
-  // The returned temperature is in degrees Celcius.
-  return (t);
+  temperature += offset * 10;
+  return temperature;
 }

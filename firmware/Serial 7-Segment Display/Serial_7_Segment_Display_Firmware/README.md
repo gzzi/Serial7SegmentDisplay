@@ -8,3 +8,5 @@
 ## Usage
 
 Connect a push button between SS and GND. By pressing the push button, you switch between temperature display and analog measurements.
+
+Ensure mode in eeprom is set to `MODE_ANALOG`
